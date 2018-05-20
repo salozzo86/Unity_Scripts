@@ -8,14 +8,19 @@ public class Player_Controller : MonoBehaviour {
     [SerializeField]
     private float _speed = 5.0f;
 
-    //variable for laser prefab
+    //variables for laser prefabs
     [SerializeField]
     private GameObject _laserPrefab;
+    [SerializeField]
+    private GameObject _tripleLaser;
 
     //variables for cool down system
     [SerializeField]
     private float _fireRate = 0.25f;
     private float _canFire = 0.0f;
+
+    //boolean for triple shot
+    public bool _tripleShot = false;
 
 	// Use this for initialization
 	void Start () {
@@ -27,8 +32,10 @@ public class Player_Controller : MonoBehaviour {
         //initialize the movement method
         Movement();
 
-        //initialize the shooting method
-        Shoot();
+        //initialize the shooting method if the player press the shoot button
+        if (Input.GetKeyDown((KeyCode.Space))) {
+            Shoot();
+        }
 	}
 
     //method that handles movement
@@ -61,20 +68,44 @@ public class Player_Controller : MonoBehaviour {
 
     //method that handles shooting
     private void Shoot () {
-        //if statement for the firing system and the cool down
-        if (Input.GetKeyDown((KeyCode.Space)))
-        {
+
+ 
+
+
 
             //check to see if the player can fire
             if (Time.time > _canFire)
             {
 
+                if (_tripleShot)
+                {
+                    //instantiate triple shot
+                    Instantiate(_tripleLaser, transform.position, Quaternion.identity);
+
+            } else
                 //instantiate the laser
                 Instantiate(_laserPrefab, transform.position + new Vector3(0, 0.88f, 0), Quaternion.identity);
 
                 //reassign canFire to game time and fire rate, for control
                 _canFire = Time.time + _fireRate;
             }
-        }
+        
+    }
+
+    public void TripleShotPowerUpOn()
+    {
+        //activate power up and the co routine
+        _tripleShot = true;
+        StartCoroutine(TripleShotPowerDownRoutine());
+    }
+
+    //power down coroutine
+    public IEnumerator TripleShotPowerDownRoutine()
+    {
+        //yield instruction
+        yield return new WaitForSeconds(5.0f);
+
+        //what happens when the yield instruction is satisfied
+        _tripleShot = false;
     }
 }
