@@ -8,3 +8,4 @@ GALAXY SHOOTER
 
 1. Player Controller
 2. Shooting System
+3. Power Up
