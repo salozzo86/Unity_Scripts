@@ -19,9 +19,17 @@ public class Laser : MonoBehaviour {
         //laser movement forward 
         transform.Translate(Vector3.up * _speed * Time.deltaTime);
 
-        //laser disappears when off-screen
+        //destroy lasers or triple shot when out of the boundaries
         if (transform.position.y > 5.70f) {
-            Destroy(gameObject);
+
+            if (this.transform.parent)
+            {
+                Destroy(this.transform.parent.gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
         }
 		
 	}

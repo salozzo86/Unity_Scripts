@@ -19,11 +19,62 @@ public class Player_Controller : MonoBehaviour {
     private float _fireRate = 0.25f;
     private float _canFire = 0.0f;
 
+    //array for engines
+    [SerializeField]
+    private GameObject[] _engines;
+
+
     //boolean for triple shot
-    public bool _tripleShot = false;
+    public bool tripleShot = false;
+    //boolean for speed boost
+    public bool speedBoost = false;
+        //speed when speedBoost active
+        [SerializeField]
+        private float _boostedSpeed = 10.0f;
+    //boolean for shield boost
+    public bool shieldBoost = false;
+
+    //shield representation
+    [SerializeField]
+    private GameObject _shield;
+
+    //player life counter
+    public int playerLives = 3;
+
+    //explosion animation
+    [SerializeField]
+    private GameObject _playerExplosion;
+
+    //variable for the UIManager
+    private UI_Manager _UIManager;
+
+    //variable for the spawn manager
+    private Spawn_Manager _spawnManager;
+
+    //variable for audio source
+    private AudioSource _laserSound;
 
 	// Use this for initialization
-	void Start () {
+	void Start () 
+    {
+        //get the ui manager component
+        _UIManager = GameObject.Find("Canvas").GetComponent<UI_Manager>();
+
+        //update the lives counter according to the player lives
+        _UIManager.UpdateLives(playerLives);
+
+        //get the spawn manager component
+        _spawnManager = GameObject.Find("Spawn Manager").GetComponent<Spawn_Manager>();
+
+        //get the audio source
+        _laserSound = GetComponent<AudioSource>();
+
+        //run the spawning coroutines after a nullcheck
+        if(_spawnManager != null)
+        {
+            _spawnManager.StartSpawnRoutines();
+        }
+
 	}
 	
 	// Update is called once per frame
@@ -36,6 +87,7 @@ public class Player_Controller : MonoBehaviour {
         if (Input.GetKeyDown((KeyCode.Space))) {
             Shoot();
         }
+
 	}
 
     //method that handles movement
@@ -45,11 +97,23 @@ public class Player_Controller : MonoBehaviour {
         float horizontalInput = Input.GetAxis("Horizontal");
         float verticalInput = Input.GetAxis("Vertical");
 
-        //moveright and left 
-        transform.Translate(Vector3.right* horizontalInput * _speed * Time.deltaTime);
+        //check if the speedboost is active
+        if (speedBoost == true)
+        {
+            //move right and left 
+            transform.Translate(Vector3.right * horizontalInput * _boostedSpeed * Time.deltaTime);
 
-        //move up and down
-        transform.Translate((Vector3.up* verticalInput * _speed * Time.deltaTime));
+            //move up and down
+            transform.Translate((Vector3.up * verticalInput * _boostedSpeed * Time.deltaTime));
+        }
+        else
+        {
+            //move right and left 
+            transform.Translate(Vector3.right * horizontalInput * _speed * Time.deltaTime);
+
+            //move up and down
+            transform.Translate((Vector3.up * verticalInput * _speed * Time.deltaTime));
+        }
 
         //player bounds on the y axis
         if (transform.position.y > 0) {
@@ -67,45 +131,115 @@ public class Player_Controller : MonoBehaviour {
     }
 
     //method that handles shooting
-    private void Shoot () {
+    private void Shoot () 
+    {
 
- 
+        //check to see if the player can fire
+        if (Time.time > _canFire)
+        {
 
-
-
-            //check to see if the player can fire
-            if (Time.time > _canFire)
+            _laserSound.Play();
+            if (tripleShot)
             {
+                //instantiate triple shot
+                Instantiate(_tripleLaser, transform.position, Quaternion.identity);
 
-                if (_tripleShot)
-                {
-                    //instantiate triple shot
-                    Instantiate(_tripleLaser, transform.position, Quaternion.identity);
+        } else
+            //instantiate the laser
+            Instantiate(_laserPrefab, transform.position + new Vector3(0, 0.88f, 0), Quaternion.identity);
 
-            } else
-                //instantiate the laser
-                Instantiate(_laserPrefab, transform.position + new Vector3(0, 0.88f, 0), Quaternion.identity);
-
-                //reassign canFire to game time and fire rate, for control
-                _canFire = Time.time + _fireRate;
-            }
+            //reassign canFire to game time and fire rate, for control
+            _canFire = Time.time + _fireRate;
+        }
         
     }
 
-    public void TripleShotPowerUpOn()
+    public void Damage ()
     {
-        //activate power up and the co routine
-        _tripleShot = true;
-        StartCoroutine(TripleShotPowerDownRoutine());
+        //shield up check 
+        if (shieldBoost == true)
+        {
+            //deactivate the shield boost and return to the beginning of the method
+            shieldBoost = false;
+
+            //deactivate shield animation
+            _shield.SetActive(false);
+
+            //return to beginning of the method
+            return;
+        }
+        //remove one life
+        playerLives--;
+
+        //update the lives counter
+        _UIManager.UpdateLives(playerLives);
+
+        //check if less than 1 life
+        if (playerLives < 1)
+        {
+            //player explosion animation
+            Instantiate(_playerExplosion, transform.position, Quaternion.identity);
+
+            //main menu
+            _UIManager.ShowMainMenu();
+
+            //destroy the player
+            Destroy(this.gameObject);
+        }
+        
+
+
     }
 
-    //power down coroutine
+    //method for the triple shot power up
+    public void TripleShotPowerUpOn()
+    {
+        //activate power up and the coroutine
+        if(tripleShot == false)
+        {
+            tripleShot = true;
+            StartCoroutine(TripleShotPowerDownRoutine());
+        }
+
+    }
+
+    //method for the speed boost power up
+    public void SpeedBoostPowerUpOn()
+    {
+        //activate power up and coroutine
+        speedBoost = true;
+        StartCoroutine(SpeedBoostPowerDownRoutine());
+
+    }
+
+    //method for the shield boost power up
+    public void ShieldBoostPowerUpOn()
+    {
+        //activate shield up
+        shieldBoost = true;
+
+        //activate shield animation
+        _shield.SetActive(true);
+    }
+
+    //power down coroutine for triple shot
     public IEnumerator TripleShotPowerDownRoutine()
     {
         //yield instruction
         yield return new WaitForSeconds(5.0f);
 
-        //what happens when the yield instruction is satisfied
-        _tripleShot = false;
+        //consequence
+        tripleShot = false;
     }
+
+    //power down coroutine for speed boost
+    public IEnumerator SpeedBoostPowerDownRoutine()
+    {
+        //yield instruction
+        yield return new WaitForSeconds(5.0f);
+
+        //consequence
+        speedBoost = false;
+    }
+
 }
